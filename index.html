@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Отчёты по сотрудникам</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    mark { padding: 0 .15rem; border-radius: .25rem; }
+    .control { @apply w-full rounded-2xl px-5 py-4 text-lg bg-white text-slate-900 shadow focus:outline-none focus:ring-4 focus:ring-blue-300; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <header class="bg-slate-900 text-white">
+    <div class="max-w-5xl mx-auto px-4 py-8">
+      <h1 class="text-3xl md:text-4xl font-black tracking-tight">Отчёты по сотрудникам</h1>
+      <p class="text-slate-300 mt-2">Фильтруйте по имени и по месяцу</p>
+
+      <div class="mt-6 grid md:grid-cols-3 gap-3">
+        <div class="md:col-span-2">
+          <label for="q" class="sr-only">Поиск по имени</label>
+          <input id="q" type="search" placeholder="Например: Анашкина Ольга" class="control" autocomplete="off" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="sr-only" for="month">Месяц</label>
+          <select id="month" class="control text-base">
+            <option value="">Все месяцы</option>
+          </select>
+
+          <label class="sr-only" for="year">Год</label>
+          <select id="year" class="control text-base">
+            <option value="">Все годы</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-8">
+    <div id="stats" class="text-sm text-slate-500 mb-4">Загружаем список…</div>
+    <ul id="list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></ul>
+  </main>
+
+  <footer class="text-center text-slate-400 text-sm py-8">
+    Статическая выдача · Поиск выполняется на стороне клиента · GitHub Pages
+  </footer>
+
+  <script>
+    function norm(s) { return (s || "").toString().toLowerCase().normalize('NFC').replace(/\s+/g, ' ').trim(); }
+
+    function highlightName(name, query) {
+      if (!query) return name;
+      const i = name.toLowerCase().indexOf(query.toLowerCase());
+      if (i === -1) return name;
+      const before = name.slice(0, i);
+      const match  = name.slice(i, i + query.length);
+      const after  = name.slice(i + query.length);
+      return `${before}<mark>${match}</mark>${after}`;
+    }
+
+    function renderItem(item, query) {
+      const li = document.createElement('li');
+      li.className = "bg-white rounded-2xl shadow hover:shadow-lg transition p-4";
+      li.innerHTML = `
+        <a href="${item.url}" class="block">
+          <div class="text-lg font-semibold leading-snug" data-name></div>
+          <div class="text-slate-500 mt-1 text-sm">${item.month_name ? item.month_name : "Месяц не указан"}${item.year ? " · " + item.year : ""}</div>
+          <div class="text-slate-400 mt-1 text-xs break-all">${item.url}</div>
+        </a>
+      `;
+      li.querySelector('[data-name]').innerHTML = highlightName(item.name, query);
+      return li;
+    }
+
+    const state = { items: [], filtered: [] };
+
+    async function loadIndex() {
+      const res = await fetch('index.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Не удалось загрузить index.json');
+      const data = await res.json();
+
+      // Сортировка по имени (стабильная)
+      state.items = data.slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+      state.filtered = state.items;
+
+      // Заполнить селекты месяц/год по данным
+      populateFilters(state.items);
+      render();
+    }
+
+    function populateFilters(items) {
+      const months = new Map();  // key: "07", val: "Июль"
+      const years = new Set();
+
+      for (const it of items) {
+        if (Number.isInteger(it.month) && it.month >= 1 && it.month <= 12 && it.month_name) {
+          const mm = String(it.month).padStart(2, '0');
+          months.set(mm, it.month_name);
+        }
+        if (Number.isInteger(it.year)) years.add(it.year);
+      }
+
+      // Отсортируем месяцы по номеру
+      const monthSel = document.getElementById('month');
+      [...months.entries()].sort((a, b) => Number(a[0]) - Number(b[0]))
+        .forEach(([mm, name]) => {
+          const opt = document.createElement('option');
+          opt.value = mm;
+          opt.textContent = name;
+          monthSel.appendChild(opt);
+        });
+
+      // Годы по убыванию
+      const yearSel = document.getElementById('year');
+      [...years].sort((a, b) => b - a)
+        .forEach(y => {
+          const opt = document.createElement('option');
+          opt.value = String(y);
+          opt.textContent = String(y);
+          yearSel.appendChild(opt);
+        });
+
+      // Восстановим из hash (если был)
+      const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+      if (params.get('m')) monthSel.value = params.get('m');
+      if (params.get('y')) yearSel.value = params.get('y');
+    }
+
+    function render(query = '') {
+      const list = document.getElementById('list');
+      const stats = document.getElementById('stats');
+      list.textContent = '';
+      const frag = document.createDocumentFragment();
+      for (const item of state.filtered) {
+        frag.appendChild(renderItem(item, query));
+      }
+      list.appendChild(frag);
+      stats.textContent = `Найдено: ${state.filtered.length} из ${state.items.length}`;
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('q').value;
+      const m = document.getElementById('month').value; // "07" или ""
+      const y = document.getElementById('year').value;  // "2025" или ""
+
+      state.filtered = state.items.filter(it => {
+        const byName = !q || norm(it.name).includes(norm(q));
+        const byMonth = !m || (Number(it.month) === Number(m));
+        const byYear = !y || (String(it.year) === y);
+        return byName && byMonth && byYear;
+      });
+
+      // Обновляем hash для шаринга фильтра
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (m) params.set('m', m);
+      if (y) params.set('y', y);
+      const hash = params.toString();
+      history.replaceState(null, '', hash ? '#' + hash : ' ');
+
+      render(q);
+    }
+
+    function debounce(fn, ms) {
+      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
+
+    (async function init() {
+      const input = document.getElementById('q');
+      const monthSel = document.getElementById('month');
+      const yearSel = document.getElementById('year');
+
+      input.addEventListener('input', debounce(applyFilters, 100));
+      monthSel.addEventListener('change', applyFilters);
+      yearSel.addEventListener('change', applyFilters);
+
+      // Восстановим поисковую строку из hash (если была)
+      const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+      if (params.get('q')) input.value = params.get('q');
+
+      try {
+        await loadIndex();
+        applyFilters();
+      } catch (e) {
+        document.getElementById('stats').textContent = String(e);
+      }
+    })();
+  </script>
+</body>
+</html>
