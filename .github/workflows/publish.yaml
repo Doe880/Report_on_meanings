@@ -2,7 +2,7 @@ name: Publish reports to GitHub Pages
 
 on:
   push:
-    branches: [ main ]           # поменяйте, если деплоите из другой ветки
+    branches: [ main ]       # если у вас другая ветка — поменяйте
   workflow_dispatch:
 
 permissions:
@@ -24,19 +24,19 @@ jobs:
       - name: List repo files (debug)
         run: |
           echo "PWD: $PWD"
-          ls -la
-          echo "---- reports/ ----"
+          git ls-files -z | tr '\0' '\n'
+          echo "---- reports/ (ls) ----"
           ls -la reports || true
 
       - name: Generate index.json
         run: |
           python3 --version
           python3 generate_index.py
-          echo "---- head of index.json ----"
-          head -n 20 index.json || true
+          echo "---- index.json head ----"
+          head -n 30 index.json || true
 
-          # sanity checks: есть ли отчёты и непустой index.json
-          count_reports=$(ls reports/*.html 2>/dev/null | wc -l | xargs)
+          # sanity-check: есть ли .html и записи в index.json
+          count_reports=$(find reports -maxdepth 1 -type f -name '*.html' | wc -l | xargs)
           if [ "$count_reports" = "0" ]; then
             echo "::error::No HTML reports found in ./reports/"
             exit 1
@@ -51,7 +51,8 @@ jobs:
           mkdir -p site/reports
           cp -v index.html site/
           cp -v index.json site/
-          cp -v reports/*.html site/reports/
+          # Надёжное копирование файлов с пробелами/кириллицей
+          find reports -maxdepth 1 -type f -name '*.html' -print0 | xargs -0 -I {} cp -v "{}" site/reports/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -68,3 +69,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
