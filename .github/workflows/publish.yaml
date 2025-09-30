@@ -2,7 +2,7 @@ name: Publish reports to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]           # поменяйте, если деплоите из другой ветки
   workflow_dispatch:
 
 permissions:
@@ -21,13 +21,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Если отчёты уже готовы как статические HTML,
-      # просто складываем их в папку site/
+      - name: List repo files (debug)
+        run: |
+          echo "PWD: $PWD"
+          ls -la
+          echo "---- reports/ ----"
+          ls -la reports || true
+
+      - name: Generate index.json
+        run: |
+          python3 --version
+          python3 generate_index.py
+          echo "---- head of index.json ----"
+          head -n 20 index.json || true
+
+          # sanity checks: есть ли отчёты и непустой index.json
+          count_reports=$(ls reports/*.html 2>/dev/null | wc -l | xargs)
+          if [ "$count_reports" = "0" ]; then
+            echo "::error::No HTML reports found in ./reports/"
+            exit 1
+          fi
+          if ! grep -q '"name"' index.json; then
+            echo "::error::index.json has no entries"
+            exit 1
+          fi
+
       - name: Prepare site
         run: |
           mkdir -p site/reports
-          cp -R index.html site/
-          cp -R reports/*.html site/reports/
+          cp -v index.html site/
+          cp -v index.json site/
+          cp -v reports/*.html site/reports/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
