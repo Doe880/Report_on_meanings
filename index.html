@@ -16,8 +16,8 @@
 <body class="bg-slate-50 text-slate-800">
   <header class="bg-slate-900 text-white">
     <div class="max-w-5xl mx-auto px-4 py-8">
-      <h1 class="text-3xl md:text-4xl font-black tracking-tight">Отчёты по смыслам</h1>
-      <p class="text-slate-300 mt-2">Поиск по ФИО</p>
+      <h1 class="text-3xl md:text-4xl font-black tracking-tight">Отчёты по сотрудникам</h1>
+      <p class="text-slate-300 mt-2">Фильтруйте по имени и по месяцу</p>
 
       <div class="mt-6 grid md:grid-cols-3 gap-3">
         <div class="md:col-span-2">
@@ -28,20 +28,25 @@
                  autocomplete="off" />
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <label class="sr-only" for="month">Месяц</label>
-          <select id="month"
-                  class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
-                         focus:outline-none focus:ring-4 focus:ring-blue-300">
-            <option value="">Месяц</option>
-          </select>
+        <div class="grid grid-cols-2 gap-3 items-end">
+          <div>
+            <p class="text-slate-300 mb-1">Месяц</p>
+            <label class="sr-only" for="month">Месяц</label>
+            <select id="month"
+                    class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
+                           focus:outline-none focus:ring-4 focus:ring-blue-300">
+            </select>
+          </div>
 
-          <label class="sr-only" for="year">Год</label>
-          <select id="year"
-                  class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
-                         focus:outline-none focus:ring-4 focus:ring-blue-300">
-            <option value="">Год</option>
-          </select>
+          <div>
+            <p class="text-slate-300 mb-1">Год</p>
+            <label class="sr-only" for="year">Год</label>
+            <select id="year"
+                    class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
+                           focus:outline-none focus:ring-4 focus:ring-blue-300">
+              <!-- без опции "Все годы" -->
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -119,17 +124,22 @@
         });
 
       const yearSel = document.getElementById('year');
-      [...years].sort((a, b) => b - a)
-        .forEach(y => {
-          const opt = document.createElement('option');
-          opt.value = String(y);
-          opt.textContent = String(y);
-          yearSel.appendChild(opt);
-        });
+      const sortedYears = [...years].sort((a, b) => b - a); // по убыванию
+      sortedYears.forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = String(y);
+        yearSel.appendChild(opt);
+      });
 
+      // Восстановим из hash, иначе авто-выбор свежего года
       const params = new URLSearchParams(location.hash.replace(/^#/, ''));
       if (params.get('m')) monthSel.value = params.get('m');
-      if (params.get('y')) yearSel.value = params.get('y');
+      if (params.get('y')) {
+        yearSel.value = params.get('y');
+      } else if (sortedYears.length) {
+        yearSel.value = String(sortedYears[0]); // самый последний год
+      }
     }
 
     function render(query = '') {
@@ -146,8 +156,8 @@
 
     function applyFilters() {
       const q = document.getElementById('q').value;
-      const m = document.getElementById('month').value;
-      const y = document.getElementById('year').value;
+      const m = document.getElementById('month').value; // обязательно одно из значений
+      const y = document.getElementById('year').value;  // обязательно один из годов
 
       state.filtered = state.items.filter(it => {
         const byName = !q || norm(it.name).includes(norm(q));
