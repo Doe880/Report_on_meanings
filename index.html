@@ -16,11 +16,12 @@
 <body class="bg-slate-50 text-slate-800">
   <header class="bg-slate-900 text-white">
     <div class="max-w-5xl mx-auto px-4 py-8">
-      <h1 class="text-3xl md:text-4xl font-black tracking-tight">Отчёты по сотрудникам</h1>
-      <p class="text-slate-300 mt-2">Фильтруйте по имени и по месяцу</p>
+      <h1 class="text-3xl md:text-4xl font-black tracking-tight">Отчёты по смыслам</h1>
+      <p class="text-slate-300 mt-2">Поиск по ФИО</p>
 
-      <div class="mt-6 grid md:grid-cols-3 gap-3">
-        <div class="md:col-span-2">
+      <!-- Одна строка: поиск + месяц + год -->
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+        <div class="md:col-span-8">
           <label for="q" class="sr-only">Поиск по имени</label>
           <input id="q" type="search" placeholder="Например: Анашкина Ольга"
                  class="w-full rounded-2xl px-5 py-4 text-lg bg-white text-black shadow
@@ -28,25 +29,22 @@
                  autocomplete="off" />
         </div>
 
-        <div class="grid grid-cols-2 gap-3 items-end">
-          <div>
-            <p class="text-slate-300 mb-1">Месяц</p>
-            <label class="sr-only" for="month">Месяц</label>
-            <select id="month"
-                    class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
-                           focus:outline-none focus:ring-4 focus:ring-blue-300">
-            </select>
-          </div>
+        <div class="md:col-span-2">
+          <label class="sr-only" for="month">Месяц</label>
+          <select id="month"
+                  class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
+                         focus:outline-none focus:ring-4 focus:ring-blue-300">
+            <!-- плейсхолдер добавится скриптом -->
+          </select>
+        </div>
 
-          <div>
-            <p class="text-slate-300 mb-1">Год</p>
-            <label class="sr-only" for="year">Год</label>
-            <select id="year"
-                    class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
-                           focus:outline-none focus:ring-4 focus:ring-blue-300">
-              <!-- без опции "Все годы" -->
-            </select>
-          </div>
+        <div class="md:col-span-2">
+          <label class="sr-only" for="year">Год</label>
+          <select id="year"
+                  class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
+                         focus:outline-none focus:ring-4 focus:ring-blue-300">
+            <!-- плейсхолдер добавится скриптом -->
+          </select>
         </div>
       </div>
     </div>
@@ -58,7 +56,7 @@
   </main>
 
   <footer class="text-center text-slate-400 text-sm py-8">
-    Статическая выдача · Поиск выполняется на стороне клиента · GitHub Pages
+     Отчеты
   </footer>
 
   <script>
@@ -103,7 +101,7 @@
     }
 
     function populateFilters(items) {
-      const months = new Map();
+      const months = new Map(); // "07" -> "Июль"
       const years = new Set();
 
       for (const it of items) {
@@ -115,6 +113,13 @@
       }
 
       const monthSel = document.getElementById('month');
+      const yearSel = document.getElementById('year');
+
+      // плейсхолдеры
+      monthSel.innerHTML = `<option value="" selected disabled>Месяц</option>`;
+      yearSel.innerHTML = `<option value="" selected disabled>Год</option>`;
+
+      // месяцы по возрастанию
       [...months.entries()].sort((a, b) => Number(a[0]) - Number(b[0]))
         .forEach(([mm, name]) => {
           const opt = document.createElement('option');
@@ -123,23 +128,19 @@
           monthSel.appendChild(opt);
         });
 
-      const yearSel = document.getElementById('year');
-      const sortedYears = [...years].sort((a, b) => b - a); // по убыванию
-      sortedYears.forEach(y => {
-        const opt = document.createElement('option');
-        opt.value = String(y);
-        opt.textContent = String(y);
-        yearSel.appendChild(opt);
-      });
+      // годы по убыванию (все доступны для выбора)
+      [...years].sort((a, b) => b - a)
+        .forEach(y => {
+          const opt = document.createElement('option');
+          opt.value = String(y);
+          opt.textContent = String(y);
+          yearSel.appendChild(opt);
+        });
 
-      // Восстановим из hash, иначе авто-выбор свежего года
+      // восстановление из hash
       const params = new URLSearchParams(location.hash.replace(/^#/, ''));
       if (params.get('m')) monthSel.value = params.get('m');
-      if (params.get('y')) {
-        yearSel.value = params.get('y');
-      } else if (sortedYears.length) {
-        yearSel.value = String(sortedYears[0]); // самый последний год
-      }
+      if (params.get('y')) yearSel.value = params.get('y');
     }
 
     function render(query = '') {
@@ -156,8 +157,8 @@
 
     function applyFilters() {
       const q = document.getElementById('q').value;
-      const m = document.getElementById('month').value; // обязательно одно из значений
-      const y = document.getElementById('year').value;  // обязательно один из годов
+      const m = document.getElementById('month').value; // "" если плейсхолдер
+      const y = document.getElementById('year').value;  // "" если плейсхолдер
 
       state.filtered = state.items.filter(it => {
         const byName = !q || norm(it.name).includes(norm(q));
