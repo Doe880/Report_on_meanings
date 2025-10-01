@@ -11,7 +11,6 @@
   <style>
     body { font-family: 'Inter', sans-serif; }
     mark { padding: 0 .15rem; border-radius: .25rem; }
-    .control { @apply w-full rounded-2xl px-5 py-4 text-lg bg-white text-slate-900 shadow focus:outline-none focus:ring-4 focus:ring-blue-300; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -23,17 +22,24 @@
       <div class="mt-6 grid md:grid-cols-3 gap-3">
         <div class="md:col-span-2">
           <label for="q" class="sr-only">Поиск по имени</label>
-          <input id="q" type="search" placeholder="Например: Анашкина Ольга" class="control" autocomplete="off" />
+          <input id="q" type="search" placeholder="Например: Анашкина Ольга"
+                 class="w-full rounded-2xl px-5 py-4 text-lg bg-white text-black shadow
+                        focus:outline-none focus:ring-4 focus:ring-blue-300"
+                 autocomplete="off" />
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <label class="sr-only" for="month">Месяц</label>
-          <select id="month" class="control text-base">
+          <select id="month"
+                  class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
+                         focus:outline-none focus:ring-4 focus:ring-blue-300">
             <option value="">Все месяцы</option>
           </select>
 
           <label class="sr-only" for="year">Год</label>
-          <select id="year" class="control text-base">
+          <select id="year"
+                  class="w-full rounded-2xl px-5 py-4 text-base bg-white text-black shadow
+                         focus:outline-none focus:ring-4 focus:ring-blue-300">
             <option value="">Все годы</option>
           </select>
         </div>
@@ -80,21 +86,19 @@
     const state = { items: [], filtered: [] };
 
     async function loadIndex() {
-      const res = await fetch('index.json', { cache: 'no-store' });
+      const res = await fetch('./index.json', { cache: 'no-store' });
       if (!res.ok) throw new Error('Не удалось загрузить index.json');
       const data = await res.json();
 
-      // Сортировка по имени (стабильная)
       state.items = data.slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'));
       state.filtered = state.items;
 
-      // Заполнить селекты месяц/год по данным
       populateFilters(state.items);
       render();
     }
 
     function populateFilters(items) {
-      const months = new Map();  // key: "07", val: "Июль"
+      const months = new Map();
       const years = new Set();
 
       for (const it of items) {
@@ -105,7 +109,6 @@
         if (Number.isInteger(it.year)) years.add(it.year);
       }
 
-      // Отсортируем месяцы по номеру
       const monthSel = document.getElementById('month');
       [...months.entries()].sort((a, b) => Number(a[0]) - Number(b[0]))
         .forEach(([mm, name]) => {
@@ -115,7 +118,6 @@
           monthSel.appendChild(opt);
         });
 
-      // Годы по убыванию
       const yearSel = document.getElementById('year');
       [...years].sort((a, b) => b - a)
         .forEach(y => {
@@ -125,7 +127,6 @@
           yearSel.appendChild(opt);
         });
 
-      // Восстановим из hash (если был)
       const params = new URLSearchParams(location.hash.replace(/^#/, ''));
       if (params.get('m')) monthSel.value = params.get('m');
       if (params.get('y')) yearSel.value = params.get('y');
@@ -145,8 +146,8 @@
 
     function applyFilters() {
       const q = document.getElementById('q').value;
-      const m = document.getElementById('month').value; // "07" или ""
-      const y = document.getElementById('year').value;  // "2025" или ""
+      const m = document.getElementById('month').value;
+      const y = document.getElementById('year').value;
 
       state.filtered = state.items.filter(it => {
         const byName = !q || norm(it.name).includes(norm(q));
@@ -155,7 +156,6 @@
         return byName && byMonth && byYear;
       });
 
-      // Обновляем hash для шаринга фильтра
       const params = new URLSearchParams();
       if (q) params.set('q', q);
       if (m) params.set('m', m);
@@ -179,7 +179,6 @@
       monthSel.addEventListener('change', applyFilters);
       yearSel.addEventListener('change', applyFilters);
 
-      // Восстановим поисковую строку из hash (если была)
       const params = new URLSearchParams(location.hash.replace(/^#/, ''));
       if (params.get('q')) input.value = params.get('q');
 
