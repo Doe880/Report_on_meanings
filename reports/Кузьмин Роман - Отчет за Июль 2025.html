@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчет по Смыслам: Кузьмин Роман</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .brand-blue-dark { color: #003f5c; }
+        .brand-blue-dark-bg { background-color: #003f5c; }
+        .brand-green-dark { color: #488f31; }
+        .brand-green-dark-bg { background-color: #488f31; }
+        .hero-section {
+            background: linear-gradient(rgba(0, 63, 92, 0.85), rgba(0, 63, 92, 0.85)), url('https://images.unsplash.com/photo-1576091160550-2173dba9996a?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+            background-size: cover;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .stat-card:hover { transform: translateY(-8px); }
+        .person-icon-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;  
+            justify-content: center;
+            align-items: center;
+            margin-top: 1rem;
+            min-height: 44px;
+            font-size: 1.4rem;  
+            line-height: 1.1;
+        }
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin: 1rem auto; height: 250px; }
+        .impact-arrow { color: #e2e8f0; font-size: 2.5rem; font-weight: 200; }
+        .impact-step { width: 10rem; height: 10rem; }
+        .impact-step-final { width: 12rem; height: 12rem; }
+    </style>
+</head>
+<body class="text-slate-700"
+      data-patients-helped="134"
+      data-impact-lives="67"
+      data-vzo-women="33"
+      data-birth-families="14"
+      data-prostatitis-men="20">
+
+    <header class="hero-section text-white py-20 px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <p class="text-xl md:text-2xl text-slate-300">Отчет по смыслам: Июль</p>
+            <h1 class="text-4xl md:text-6xl font-black tracking-tight mt-2">Кузьмин Роман</h1>
+            <p class="mt-4 text-xl md:text-2xl text-slate-200">Ваша работа — это истории людей, которым вы помогли.</p>
+        </div>
+    </header>
+
+    <main class="py-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto">
+            <section id="overview" class="mb-20">
+                <h2 class="text-3xl md:text-4xl font-bold text-center brand-blue-dark mb-12">Ваш вклад за июль в цифрах</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="stat-card">
+                        <h3 class="text-xl font-bold brand-blue-dark">Всего упаковок</h3>
+                        <p class="text-7xl font-black brand-green-dark my-4">267</p>
+                        <p class="text-slate-500 mt-4">Каждая упаковка — это шаг к здоровью.</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="text-xl font-bold brand-blue-dark">Пациентов получили помощь</h3>
+                        <p class="text-7xl font-black brand-green-dark my-4">~134</p>
+                        <div class="person-icon-container" id="total-patients-icons"></div>
+                        <p class="text-slate-500 mt-4">За один месяц вашей работы.</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="text-xl font-bold brand-blue-dark">Измененных к лучшему жизней</h3>
+                        <p class="text-7xl font-black brand-green-dark my-4">67</p>
+                        <div class="person-icon-container" id="impacted-lives-icons"></div>
+                        <p class="text-slate-500 mt-4">Ключевых историй успеха.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="w-full border-t-2 border-slate-200 my-20"></div>
+
+            <section id="gynecology" class="mb-20">
+                <h2 class="text-3xl md:text-4xl font-bold text-center brand-blue-dark mb-12">Влияние в гинекологии: щит для женского здоровья</h2>
+                <p class="text-center text-lg text-slate-500 max-w-3xl mx-auto -mt-8 mb-12">(Расчеты ключевых историй основаны на продажах 198 уп. суппозиториев)</p>
+                <div class="flex flex-col lg:flex-row gap-12 items-stretch">
+                    <div class="w-full lg:w-1/2 text-center lg:text-left">
+                        <h3 class="text-2xl font-bold brand-green-dark">Год спокойной жизни для 33 женщин</h3>
+                        <p class="mt-4 text-lg">Вы помогли <strong>33 женщинам</strong> разорвать порочный круг хронических воспалительных заболеваний (ВЗОМТ). Это целый год жизни без боли и страха рецидива.</p>
+                        <div class="person-icon-container justify-center lg:justify-start" id="vzo-women-icons"></div>
+                    </div>
+                    <div class="w-full lg:w-1/2">
+                        <div class="stat-card p-6 h-full">
+                             <h3 class="text-2xl font-bold brand-green-dark">Фундамент для 14 новых жизней</h3>
+                             <p class="mt-4 text-lg">Вы помогли заложить основу для здорового материнства как минимум для <strong>14 будущих матерей</strong>, снизив для них риск осложненных родов.</p>
+                            <div class="person-icon-container justify-center" id="birth-families-icons"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="w-full border-t-2 border-slate-200 my-20"></div>
+
+            <section id="urology" class="mb-20">
+                <h2 class="text-3xl md:text-4xl font-bold text-center brand-blue-dark mb-12">Влияние в урологии: возвращение мужской уверенности</h2>
+                 <p class="text-center text-lg text-slate-500 max-w-3xl mx-auto -mt-8 mb-12">(Расчеты ключевых историй основаны на продажах 198 уп. суппозиториев)</p>
+                <div class="flex flex-col lg:flex-row gap-12 items-stretch">
+                    <div class="w-full lg:w-1/2 text-center lg:text-left">
+                        <h3 class="text-2xl font-bold brand-green-dark">Год жизни без простатита для 20 мужчин</h3>
+                        <p class="mt-4 text-lg">Ваша работа помогла <strong>20 мужчинам</strong> получить год жизни без боли и дискомфорта, позволив им вернуться к активной жизни.</p>
+                        <div class="person-icon-container justify-center lg:justify-start" id="prostatitis-men-icons"></div>
+                    </div>
+                    <div class="w-full lg:w-1/2">
+                        <div class="stat-card p-6 h-full">
+                            <h4 class="font-semibold mb-4">Снижение рецидивов простатита в 3 раза</h4>
+                             <div class="chart-container">
+                                <canvas id="uroRelapseChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <div class="w-full border-t-2 border-slate-200 my-20"></div>
+
+            <section class="text-center">
+                 <h2 class="text-3xl md:text-4xl font-bold brand-blue-dark mb-10">Ваша работа — это эффект домино</h2>
+                 <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center flex flex-col items-center justify-center impact-step">
+                        <p class="text-5xl">🤝</p><p class="mt-2 font-semibold">Ваш визит</p>
+                    </div>
+                    <div class="impact-arrow transform md:rotate-0 rotate-90">&rarr;</div>
+                    <div class="p-6 bg-white rounded-lg shadow-lg text-center flex flex-col items-center justify-center impact-step">
+                        <p class="text-5xl">📝</p><p class="mt-2 font-semibold">Назначение врача</p>
+                    </div>
+                     <div class="impact-arrow transform md:rotate-0 rotate-90">&rarr;</div>
+                     <div class="p-6 brand-green-dark-bg text-white rounded-lg shadow-2xl text-center flex flex-col items-center justify-center impact-step-final">
+                        <p class="text-5xl">❤️</p><p class="mt-2 text-xl font-bold">Здоровая жизнь</p>
+                    </div>
+                 </div>
+                 <p class="mt-12 text-xl text-slate-600 max-w-3xl mx-auto">Каждое ваше действие запускает цепочку, в конце которой — благодарность людей, чью жизнь вы изменили к лучшему.</p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="brand-blue-dark-bg text-white mt-16 py-10">
+        <div class="max-w-6xl mx-auto text-center px-4">
+            <p class="font-bold text-2xl">Сэлвим — эксперты семейного здоровья</p>
+            <p class="mt-2 text-slate-300">Спасибо за ваш неоценимый вклад, Роман!</p>
+        </div>
+    </footer>
+
+ <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const renderEmojis = (containerId, count, emoji) => {
+      const container = document.getElementById(containerId);
+      const n = Number(count);
+
+      if (!container || !Number.isFinite(n) || n < 0) return;
+
+      
+      container.textContent = '';
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < n; i++) {
+        const span = document.createElement('span');
+        span.textContent = emoji;
+        frag.appendChild(span);
+      }
+      container.appendChild(frag);
+    };
+
+    
+    const dataContainer = document.body;
+    const patientsHelped  = parseInt(dataContainer.dataset.patientsHelped, 10);
+    const impactLives     = parseInt(dataContainer.dataset.impactLives, 10);
+    const vzoWomen        = parseInt(dataContainer.dataset.vzoWomen, 10);
+    const birthFamilies   = parseInt(dataContainer.dataset.birthFamilies, 10);
+    const prostatitisMen  = parseInt(dataContainer.dataset.prostatitisMen, 10);
+
+    
+    renderEmojis('total-patients-icons',  patientsHelped,  '👤');
+    renderEmojis('impacted-lives-icons',  impactLives,     '❤️');
+    renderEmojis('vzo-women-icons',       vzoWomen,        '👩');
+    renderEmojis('birth-families-icons',  birthFamilies,   '👨‍👩‍👧');
+    renderEmojis('prostatitis-men-icons', prostatitisMen,  '👨🏻');
+
+    
+    const uroRelapseCtx = document.getElementById('uroRelapseChart');
+    if (uroRelapseCtx) {
+      new Chart(uroRelapseCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Без Галавита', 'С Галавитом'],
+          datasets: [{
+            label: 'Частота рецидивов',
+            data: [30, 10],
+            backgroundColor: ['#e2e8f0', '#003f5c'],
+            borderRadius: 5
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true, max: 35, ticks: { callback: value => value + '%' } } }
+        }
+      });
+    }
+  });
+</script>
+
+</body>
+</html>
+
