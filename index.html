@@ -75,10 +75,11 @@
     function renderItem(item, query) {
       const li = document.createElement('li');
       li.className = "bg-white rounded-2xl shadow hover:shadow-lg transition p-4";
+      const yearText = (item.year ?? "").toString();
       li.innerHTML = `
         <a href="${item.url}" class="block">
           <div class="text-lg font-semibold leading-snug" data-name></div>
-          <div class="text-slate-500 mt-1 text-sm">${item.month_name ? item.month_name : "Месяц не указан"}${item.year ? " · " + item.year : ""}</div>
+          <div class="text-slate-500 mt-1 text-sm">${item.month_name ? item.month_name : "Месяц не указан"}${yearText ? " · " + yearText : ""}</div>
           <div class="text-slate-400 mt-1 text-xs break-all">${item.url}</div>
         </a>
       `;
@@ -105,11 +106,17 @@
       const years = new Set();
 
       for (const it of items) {
-        if (Number.isInteger(it.month) && it.month >= 1 && it.month <= 12 && it.month_name) {
-          const mm = String(it.month).padStart(2, '0');
+        // Жёстко приводим к числам: в JSON могло прийти строкой "2025"
+        const m = Number(it.month);
+        const y = Number(it.year);
+
+        if (Number.isFinite(m) && m >= 1 && m <= 12 && it.month_name) {
+          const mm = String(m).padStart(2, '0');
           months.set(mm, it.month_name);
         }
-        if (Number.isInteger(it.year)) years.add(it.year);
+        if (Number.isFinite(y)) {
+          years.add(y);
+        }
       }
 
       const monthSel = document.getElementById('month');
@@ -128,7 +135,7 @@
           monthSel.appendChild(opt);
         });
 
-      // годы по убыванию (все доступны для выбора)
+      // годы по убыванию
       [...years].sort((a, b) => b - a)
         .forEach(y => {
           const opt = document.createElement('option');
@@ -141,6 +148,9 @@
       const params = new URLSearchParams(location.hash.replace(/^#/, ''));
       if (params.get('m')) monthSel.value = params.get('m');
       if (params.get('y')) yearSel.value = params.get('y');
+
+      // Отладка: увидите годы в консоли браузера
+      console.debug('Годы в данных:', [...years].sort((a,b)=>a-b));
     }
 
     function render(query = '') {
@@ -156,25 +166,28 @@
     }
 
     function applyFilters() {
-      const q = document.getElementById('q').value;
-      const m = document.getElementById('month').value; // "" если плейсхолдер
-      const y = document.getElementById('year').value;  // "" если плейсхолдер
+      const qVal = document.getElementById('q').value;
+      const mVal = document.getElementById('month').value; // "" если плейсхолдер
+      const yVal = document.getElementById('year').value;  // "" если плейсхолдер
+
+      const mNum = mVal ? Number(mVal) : null;
+      const yNum = yVal ? Number(yVal) : null;
 
       state.filtered = state.items.filter(it => {
-        const byName = !q || norm(it.name).includes(norm(q));
-        const byMonth = !m || (Number(it.month) === Number(m));
-        const byYear = !y || (String(it.year) === y);
+        const byName  = !qVal || norm(it.name).includes(norm(qVal));
+        const byMonth = !mNum || Number(it.month) === mNum;
+        const byYear  = !yNum || Number(it.year) === yNum;
         return byName && byMonth && byYear;
       });
 
       const params = new URLSearchParams();
-      if (q) params.set('q', q);
-      if (m) params.set('m', m);
-      if (y) params.set('y', y);
+      if (qVal) params.set('q', qVal);
+      if (mNum) params.set('m', String(mNum).padStart(2,'0'));
+      if (yNum) params.set('y', String(yNum));
       const hash = params.toString();
       history.replaceState(null, '', hash ? '#' + hash : ' ');
 
-      render(q);
+      render(qVal);
     }
 
     function debounce(fn, ms) {
