@@ -24,7 +24,12 @@ MONTHS = {
 }
 MONTH_RX = [(num, name, re.compile(pat, re.I | re.U)) for num, (pat, name) in MONTHS.items()]
 
-YEAR_ANYWHERE = re.compile(r"(20\d{2})")  # найдёт 2025/2026 где угодно
+# любые пробелы между цифрами в "20 25", "20 25", "2 0 2 5" и т.п.
+YEAR_FLEX = re.compile(r"2[\s\u00A0\u202F\u2009]*0[\s\u00A0\u202F\u2009]*\d[\s\u00A0\u202F\u2009]*\d")
+
+def cleanup_spaces(s: str) -> str:
+    """Убираем узкие/неразрывные пробелы, чтобы '2 025' → '2025'."""
+    return re.sub(r"[\u00A0\u202F\u2009]", "", s)
 
 class P(HTMLParser):
     def __init__(self):
@@ -47,55 +52,54 @@ class P(HTMLParser):
         if self.in_h1:    self.h1.append(s)
 
 def employee_from_stem(stem: str) -> str:
-    # "ФИО - Отчет ..." → "ФИО" (любой дефис: -, – или —)
-    import re
     parts = re.split(r"\s*[-–—]\s*", stem, maxsplit=1)
     return parts[0].strip()
 
 def month_year_from_stem(stem: str):
-    # Ищем месяц + год прямо в имени файла (без .html)
+    # нормализуем спецпробелы
+    stem_norm = cleanup_spaces(stem)
     mnum = mname = year = None
     for num, name, rx in MONTH_RX:
-        if rx.search(stem):
+        if rx.search(stem_norm):
             mnum, mname = num, name
             break
-    y = YEAR_ANYWHERE.search(stem)
+    y = YEAR_FLEX.search(stem_norm)
     if y:
-        year = int(y.group(1))
+        year = int(re.sub(r"\D", "", y.group(0))[:4])  # "2 0 2 5" -> "2025"
     return mnum, mname, year
 
 def month_year_from_html(text: str):
+    text_norm = cleanup_spaces(text)
+
     # meta приоритетнее всего
-    meta = re.search(r'<meta\s+name=["\']report-month["\']\s+content=["\'](\d{4})-(\d{2})["\']', text, re.I)
+    meta = re.search(r'<meta\s+name=["\']report-month["\']\s+content=["\'](\d{4})-(\d{2})["\']', text_norm, re.I)
     if meta:
         y, m = int(meta.group(1)), int(meta.group(2))
         return m, MONTHS[m][1], y
 
-    p = P(); p.feed(text); blob = " ".join(p.all)
+    p = P(); p.feed(text_norm); blob = " ".join(p.all)
+    blob_norm = cleanup_spaces(blob)
 
     mnum = mname = year = None
     for num, name, rx in MONTH_RX:
-        m = rx.search(blob)
+        m = rx.search(blob_norm)
         if m:
             mnum, mname = num, name
-            # год ищем рядом, а если нет — везде
-            window = blob[max(0, m.start()-40): m.end()+40]
-            y = YEAR_ANYWHERE.search(window) or YEAR_ANYWHERE.search(blob)
+            # год ищем рядом, иначе по всему тексту
+            window = blob_norm[max(0, m.start()-40): m.end()+40]
+            y = YEAR_FLEX.search(window) or YEAR_FLEX.search(blob_norm)
             if y:
-                year = int(y.group(1))
+                year = int(re.sub(r"\D", "", y.group(0))[:4])
             break
     return mnum, mname, year
 
 def main():
     items = []
     for path in sorted(REPORTS_DIR.glob("*.html")):
-        stem = path.stem  # без .html
+        stem = path.stem
         name = employee_from_stem(stem)
 
-        # 1) сначала из имени файла
         m, mname, y = month_year_from_stem(stem)
-
-        # 2) если чего-то не хватает — смотрим HTML
         if m is None or mname is None or y is None:
             html = path.read_text(encoding="utf-8", errors="ignore")
             m2, mname2, y2 = month_year_from_html(html)
@@ -111,7 +115,6 @@ def main():
             "year": y
         })
 
-        # Диагностика в логах
         print(f"[OK] {path.name} -> name='{name}', month='{mname or '?'}', year={y or 'None'}")
 
     OUTFILE.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
