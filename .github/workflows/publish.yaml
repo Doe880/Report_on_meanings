@@ -2,71 +2,40 @@ name: Publish reports to GitHub Pages
 
 on:
   push:
-    branches: [ main ]       # если у вас другая ветка — поменяйте
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+    branches:
+      - master   # или master — зависит от того, как называется твоя основная ветка
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      # 1. Клонируем твой репозиторий
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: List repo files (debug)
-        run: |
-          echo "PWD: $PWD"
-          git ls-files -z | tr '\0' '\n'
-          echo "---- reports/ (ls) ----"
-          ls -la reports || true
+      # 2. Устанавливаем Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
+      # 3. Генерируем index.json из HTML-отчётов
       - name: Generate index.json
         run: |
-          python3 --version
           python3 generate_index.py
-          echo "---- index.json head ----"
-          head -n 30 index.json || true
+          echo "--- index.json preview ---"
+          head -n 30 index.json || cat index.json
 
-          # sanity-check: есть ли .html и записи в index.json
-          count_reports=$(find reports -maxdepth 1 -type f -name '*.html' | wc -l | xargs)
-          if [ "$count_reports" = "0" ]; then
-            echo "::error::No HTML reports found in ./reports/"
-            exit 1
-          fi
-          if ! grep -q '"name"' index.json; then
-            echo "::error::index.json has no entries"
-            exit 1
-          fi
-
-      - name: Prepare site
+      # 4. Готовим артефакт для GitHub Pages (папка site)
+      - name: Prepare site folder
         run: |
-          mkdir -p site/reports
-          cp -v index.html site/
-          cp -v index.json site/
-          # Надёжное копирование файлов с пробелами/кириллицей
-          find reports -maxdepth 1 -type f -name '*.html' -print0 | xargs -0 -I {} cp -v "{}" site/reports/
+          mkdir -p site
+          cp -r index.html index.json reports site/
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-  deploy:
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
+      # 5. Загружаем на GitHub Pages
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
