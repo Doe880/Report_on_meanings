@@ -1,41 +1,79 @@
+# .github/workflows/publish.yml
 name: Publish reports to GitHub Pages
 
 on:
   push:
-    branches:
-      - master   # или master — зависит от того, как называется твоя основная ветка
+    branches: [ main ]      # поменяй, если у тебя другая основная ветка
+  workflow_dispatch:        # запуск вручную из вкладки Actions
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Клонируем твой репозиторий
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Устанавливаем Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3. Генерируем index.json из HTML-отчётов
+      - name: Debug repo structure
+        run: |
+          echo "PWD: $PWD"
+          ls -la
+          echo "---- reports/ ----"
+          ls -la reports || true
+
       - name: Generate index.json
         run: |
           python3 generate_index.py
-          echo "--- index.json preview ---"
-          head -n 30 index.json || cat index.json
+          echo "---- index.json (head) ----"
+          head -n 30 index.json || true
 
-      # 4. Готовим артефакт для GitHub Pages (папка site)
-      - name: Prepare site folder
+      - name: Sanity checks
         run: |
-          mkdir -p site
-          cp -r index.html index.json reports site/
+          count_reports=$(find reports -maxdepth 1 -type f -name '*.html' | wc -l | xargs)
+          if [ "$count_reports" = "0" ]; then
+            echo "::error::No HTML reports found in ./reports/"
+            exit 1
+          fi
+          if ! grep -q '"name"' index.json; then
+            echo "::error::index.json has no entries"
+            exit 1
+          fi
 
-      # 5. Загружаем на GitHub Pages
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Prepare site artifact
+        run: |
+          mkdir -p site/reports
+          # отключим Jekyll, чтобы он не ломал кириллицу и служебные файлы
+          touch site/.nojekyll
+          cp -v index.html index.json site/
+          # безопасное копирование html с пробелами/кириллицей
+          find reports -maxdepth 1 -type f -name '*.html' -print0 | xargs -0 -I {} cp -v "{}" site/reports/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
